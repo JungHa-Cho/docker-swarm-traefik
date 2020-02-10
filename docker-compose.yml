@@ -40,7 +40,7 @@ services:
       - "--providers.docker.swarmmode=true"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - traefik_certs:/certs
+      - traefik:/certs
     configs:
       - source: traefik_htpasswd
         target: /etc/htpasswd
@@ -86,4 +86,6 @@ networks:
     name: public
 
 volumes:
-  traefik_certs: {}
+  traefik:
+    driver: glusterfs
+    name: "gfs-for-swarm/data"
