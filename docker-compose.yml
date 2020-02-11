@@ -2,12 +2,17 @@ version: '3.7'
 services:
   traefik:
     image: traefik:v2.1.3
+    env_file: 
+      - .env
     ports:
       - target: 80
         published: 80
         mode: host
       - target: 443
         published: 443
+        mode: host
+      - target: 5432
+        published: 5432
         mode: host
     environment:
       - "TZ=Asia/Seoul"
@@ -27,12 +32,13 @@ services:
       - "--certificatesresolvers.swarm-proxy.acme.httpchallenge=true"
       - "--certificatesresolvers.swarm-proxy.acme.httpchallenge.entrypoint=entrypoint-http"
       - "--certificatesresolvers.swarm-proxy.acme.caServer=https://acme-staging-v02.api.letsencrypt.org/directory"
-      - "--certificatesresolvers.swarm-proxy.acme.email=${EMAIL}"
+      - "--certificatesresolvers.swarm-proxy.acme.email=${MYEMAIL}"
       - "--certificatesresolvers.swarm-proxy.acme.storage=/certs/acme.json"
 
       # entrypoints
       - "--entrypoints.entrypoint-http.address=:80"
       - "--entrypoints.entrypoint-https.address=:443"
+      - "--entrypoints.entrypoint-postgre.address=:5432"
 
       # providers
       - "--providers.docker=true"
@@ -40,12 +46,12 @@ services:
       - "--providers.docker.swarmmode=true"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - traefik:/certs
+      - /mnt/data/traefik:/certs
     configs:
       - source: traefik_htpasswd
         target: /etc/htpasswd
     networks:
-      - public
+      - frontend
     deploy:
       mode: replicated
       replicas: 1
@@ -59,15 +65,15 @@ services:
         condition: on-failure
       labels:
         - "traefik.enable=true"
-        - "traefik.docker.network=public"
+        - "traefik.docker.network=frontend"
         - "traefik.http.services.frontend-traefik.loadbalancer.server.port=8080"
 
-        - "traefik.http.routers.unsecured-traefik.rule=Host(`traefik.${DOMAIN}`)"
+        - "traefik.http.routers.unsecured-traefik.rule=Host(`traefik.${MYDOMAIN}`)"
         - "traefik.http.routers.unsecured-traefik.entrypoints=entrypoint-http"
         - "traefik.http.routers.unsecured-traefik.middlewares=secured-redirectscheme@docker"
         - "traefik.http.middlewares.secured-redirectscheme.redirectscheme.scheme=https"
 
-        - "traefik.http.routers.secured-traefik.rule=Host(`traefik.${DOMAIN}`)"
+        - "traefik.http.routers.secured-traefik.rule=Host(`traefik.${MYDOMAIN}`)"
         - "traefik.http.routers.secured-traefik.entrypoints=entrypoint-https"
         - "traefik.http.routers.secured-traefik.service=api@internal"
         - "traefik.http.routers.secured-traefik.tls=true"
@@ -81,11 +87,17 @@ configs:
     file: ./htpasswd
 
 networks:
-  public:
-    driver: overlay
-    name: public
+  frontend:
+    external: true
 
-volumes:
-  traefik:
-    driver: glusterfs
-    name: "gfs-for-swarm/data"
+#networks:
+#  public:
+#    driver: overlay
+#    name: public
+
+#volumes:
+#  traefik:
+#    driver: glusterfs
+#    driver_opts:
+#      glusteropts: "--volfile-server=gfs01,gfs02,gfs03 --volfile-id=gfs-for-swarm --subdir-mount=/mnt/data/traefik"
+#    name: "gfs/data"
