@@ -90,15 +90,3 @@ volumes:
       type: nfs
       o: addr=${NFSIP},vers=4,nolock,soft,rw
       device: ":/data/traefik"
-
-#networks:
-#  public:
-#    driver: overlay
-#    name: public
-
-#volumes:
-#  traefik:
-#    driver: glusterfs
-#    driver_opts:
-#      glusteropts: "--volfile-server=gfs01,gfs02,gfs03 --volfile-id=gfs-for-swarm --subdir-mount=/mnt/data/traefik"
-#    name: "gfs/data"
