@@ -1,17 +1,29 @@
 version: '3.7'
 services:
   traefik:
-    image: traefik:v2.1.3
+    image: traefik:latest
     env_file: 
       - .env
     ports:
-      - "80:80"
-      - "443:443"
+      - target: 80
+        published: 80
+        protocol: tcp
+        mode: host
+      - target: 443
+        published: 443
+        protocol: tcp
+        mode: host
+      #- "80:80"
+      #- "443:443"
     environment:
       - "TZ=Asia/Seoul"
     command:
       # default
       - "--log.level=info"
+      #- "--log.filepath=/certs/default.log"
+      #- "--log.format=json"
+      - "--accesslog.filepath=/certs/access.log"
+      - "--accesslog.format=json"
       #- "--log.format=json"
       #- "--global.checkNewVersion=true"
       #- "--global.sendAnonymousUsage=false"
@@ -30,8 +42,12 @@ services:
 
       # entrypoints
       - "--entrypoints.entrypoint-http.address=:80"
+      - "--entrypoints.entrypoint-http.http.redirections.entrypoint.to=entrypoint-http"
+      - "--entrypoints.entrypoint-http.http.redirections.entrypoint.scheme=https"
+
       - "--entrypoints.entrypoint-https.address=:443"
       - "--entrypoints.entrypoint-postgre.address=:5432"
+      - "--entrypoints.entrypoint-https.forwardedHeaders.insecure=true"
 
       # providers
       - "--providers.docker=true"
@@ -61,10 +77,10 @@ services:
         - "traefik.docker.network=external"
         - "traefik.http.services.frontend-traefik.loadbalancer.server.port=8080"
 
-        - "traefik.http.routers.unsecured-traefik.rule=Host(`traefik.${MYDOMAIN}`)"
-        - "traefik.http.routers.unsecured-traefik.entrypoints=entrypoint-http"
-        - "traefik.http.routers.unsecured-traefik.middlewares=secured-redirectscheme@docker"
-        - "traefik.http.middlewares.secured-redirectscheme.redirectscheme.scheme=https"
+        #- "traefik.http.routers.unsecured-traefik.rule=Host(`traefik.${MYDOMAIN}`)"
+        #- "traefik.http.routers.unsecured-traefik.entrypoints=entrypoint-http"
+        #- "traefik.http.routers.unsecured-traefik.middlewares=secured-redirectscheme@docker"
+        #- "traefik.http.middlewares.secured-redirectscheme.redirectscheme.scheme=https"
 
         - "traefik.http.routers.secured-traefik.rule=Host(`traefik.${MYDOMAIN}`)"
         - "traefik.http.routers.secured-traefik.entrypoints=entrypoint-https"
